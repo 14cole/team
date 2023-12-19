@@ -1,0 +1,170 @@
+import os
+import spotipy
+from spotipy.oauth2 import SpotifyClientCredentials
+import spotipy.util as util
+from spotipy.oauth2 import SpotifyOAuth
+import pandas as pd
+from datetime import date
+cid ="Enter Here" ###############
+secret = "Enter Here" #################
+
+os.environ['SPOTIPY_CLIENT_ID']= cid
+os.environ['SPOTIPY_CLIENT_SECRET']= secret
+os.environ['SPOTIPY_REDIRECT_URI']='http://example.com'
+
+username = " " # Enter username Here
+client_credentials_manager = SpotifyClientCredentials(client_id=cid, client_secret=secret)
+sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
+scope = 'user-top-read'
+token = util.prompt_for_user_token(username, scope)
+
+if token:
+    sp = spotipy.Spotify(auth=token)
+else:
+    print("Can't get token for", username)
+
+
+class Spotify_Analysis:
+    def __init__(self):
+        self.track_ids = []
+        self.danceability = []
+        self.energy = []
+        self.key = []
+        self.loudness = []
+        self.mode = []
+        self.speechiness = []
+        self.acousticness = []
+        self.instrumentalness = []
+        self.liveness = []
+        self.valence = []
+        self.tempo = []
+        self.sortedsongs = []
+        self.year = []
+        self.popularity = []
+
+    def get_tracks(self):
+
+        sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
+        pl_id = 'spotify:playlist:1GfMdbbR4I8V5z7RTgTDaM'
+        results = sp.playlist(pl_id, fields="tracks,next")
+        tracks = results['tracks']
+        response2 = sp.playlist_items(pl_id, fields='items.track.id,total')
+
+        print(response2['total'])
+        if response2['total'] <= 100:
+            for i, item in enumerate(tracks['items']):
+                track = item['track']
+                self.track_ids.append(track['id'])
+
+        else:
+
+            results = sp.playlist(pl_id,fields="tracks,next")
+            tracks = results['tracks']
+            for i, item in enumerate(tracks['items']):
+                track = item['track']
+                self.track_ids.append(track['id'])
+
+            while tracks['next']:
+                tracks = sp.next(tracks)
+
+                for i, item in enumerate(tracks['items']):
+                    track = item['track']
+                    self.track_ids.append(track['id'])
+
+        print(len((self.track_ids)))
+
+    def get_track_info(self):
+        sp = spotipy.Spotify(client_credentials_manager=SpotifyClientCredentials())
+
+        for track in self.track_ids: # what to store in lists
+            tr = sp.track(track)
+            # self.energy.append(sp.audio_features(track)[0]['energy'])
+            # self.key.append(sp.audio_features(track)[0]['key'])
+            # self.loudness.append(sp.audio_features(track)[0]['loudness'])
+            self.danceability.append(sp.audio_features(track)[0]['danceability'])
+            # self.mode.append(sp.audio_features(track)[0]['mode'])
+            # self.speechiness.append(sp.audio_features(track)[0]['speechiness'])
+            # self.instrumentalness.append(sp.audio_features(track)[0]['instrumentalness'])
+            # self.liveness.append(sp.audio_features(track)[0]['liveness'])
+            # self.valence.append(sp.audio_features(track)[0]['valence'])
+            # self.tempo.append(sp.audio_features(track)[0]['tempo'])
+            # self.acousticness.append(sp.audio_features(track)[0]['acousticness'])
+            # self.popularity.append(tr['popularity'])
+            # self.year.append(tr['album']['release_date'][0:4])
+
+
+            # if (sp.audio_features(track)[0]['instrumentalness']) < 0.001:
+            #     self.danceability.append(sp.audio_features(track)[0]['instrumentalness'])
+
+    def sort_tracks(self): # what to sort by
+
+        self.sortedsongs = [x for _, x in sorted(zip(self.danceability, self.track_ids))]
+        # self.sortedsongs = [x for _, x in sorted(zip(self.energy, self.track_ids))]
+        # self.sortedsongs = [x for _, x in sorted(zip(self.key, self.track_ids))]
+        # self.sortedsongs = [x for _, x in sorted(zip(self.loudness, self.track_ids))]
+        # self.sortedsongs = [x for _, x in sorted(zip(self.mode, self.track_ids))]
+        # self.sortedsongs = [x for _, x in sorted(zip(self.speechiness, self.track_ids))]
+        # self.sortedsongs = [x for _, x in sorted(zip(self.instrumentalness, self.track_ids))]
+        # self.sortedsongs = [x for _, x in sorted(zip(self.liveness, self.track_ids))]
+        # self.sortedsongs = [x for _, x in sorted(zip(self.valence, self.track_ids))]
+        # self.sortedsongs = [x for _, x in sorted(zip(self.tempo, self.track_ids))]
+        # self.sortedsongs = [x for _, x in sorted(zip(self.acousticness, self.track_ids))]
+        # self.sortedsongs = [x for _, x in sorted(zip(self.popularity, self.track_ids))]
+        # self.sortedsongs = [x for _, x in sorted(zip(self.year, self.track_ids))]
+
+        # self.sortedsongs.reverse() # high to low
+
+        print(len(self.sortedsongs))
+
+        for song in self.sortedsongs: # print what you sorted by
+            tr = sp.track(song)
+            analysis = sp.audio_features(song)
+
+            # print(str(analysis[0]['valence']) +' ' + str(tr['name']))
+            print(str(analysis[0]['danceability']) +' ' + str(tr['name']))
+            # print(str(analysis[0]['energy']) +' ' + str(tr['name']))
+            # print(str(analysis[0]['key']) +' ' + str(tr['name']))
+            # print(str(analysis[0]['loudness']) +' ' + str(tr['name']))
+            # print(str(analysis[0]['mode']) +' ' + str(tr['name']))
+            # print(str(analysis[0]['speechiness']) +' ' + str(tr['name']))
+            # print(str(analysis[0]['instrumentalness']) +' ' + str(tr['name']))
+            # print(str(analysis[0]['liveness']) +' ' + str(tr['name']))
+            # print(str(analysis[0]['tempo']) +' ' + str(tr['name']))
+            # print(str(analysis[0]['acousticness']) +' ' + str(tr['name']))
+            # print(str(tr['popularity']) + ' ' + str(tr['name']))
+
+
+            # print(str(tr['album']['release_date'][0:4]) +' ' + str(tr['name']))
+
+
+
+    def create_playlist(self):
+        playlist_name = 'Texoma Sort Least to Highest Danceability' #Enter Playlist Name Here
+        scope = "playlist-modify-public"
+        sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
+        user_id = sp.me()['id']
+        playlist = sp.user_playlist_create(user_id, name = playlist_name)
+        self.playlist_id = playlist["id"]
+
+
+    def add_to_playlist(self):
+        playlist = self.playlist_id
+
+        while self.sortedsongs:
+            sp.playlist_add_items(playlist_id=playlist, items = self.sortedsongs[:100], position=None)
+            self.sortedsongs = self.sortedsongs[100:]
+
+    def finished(self):
+        print('Playlist Compiled')
+
+def main():
+    r1 = Spotify_Analysis()
+    r1.get_tracks()
+    r1.get_track_info()
+    r1.sort_tracks()
+    r1.create_playlist()
+    r1.add_to_playlist()
+    r1.finished()
+
+if __name__ == "__main__":
+    main()
