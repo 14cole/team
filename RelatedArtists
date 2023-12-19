@@ -1,0 +1,142 @@
+import os
+import spotipy
+from spotipy.oauth2 import SpotifyClientCredentials
+import spotipy.util as util
+from spotipy.oauth2 import SpotifyOAuth
+import pandas as pd
+from datetime import date
+
+cid = "Enter Here"
+secret = "Enter Here"
+
+os.environ['SPOTIPY_CLIENT_ID'] = cid
+os.environ['SPOTIPY_CLIENT_SECRET'] = secret
+os.environ['SPOTIPY_REDIRECT_URI'] = 'http://example.com'
+
+username = " " # Enter username here
+
+client_credentials_manager = SpotifyClientCredentials(client_id=cid, client_secret=secret)
+sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
+
+scope = 'user-top-read'
+
+
+
+auth_manager=SpotifyOAuth(scope=scope) # new
+spotipy.Spotify(auth_manager=auth_manager) # new
+
+
+# sp = spotipy.Spotify(auth=token)
+#
+# if token:
+#     sp = spotipy.Spotify(auth=token)
+# else:
+#     print("Can't get token for", username)
+#
+# print('Process Has Begun')
+
+
+class Spotify_Analysis:
+    def __init__(self):
+        self.track_ids = []
+        self.artist_ids = []
+        self.sortedsongs = []
+        self.newartists = []
+        self.cleaned_up = []
+        self.related = "flipturn" #Enter artist name here
+        self.threshold = 50 # Enter popularity threshold here 0-100, 100 is most popular
+
+    def get_related_artists(self):
+        artist_name = self.related
+        print('Starting search for ' + artist_name)
+        result = sp.search(q='artist:' + artist_name, type='artist')
+        name = result['artists']['items'][0]['name']
+        uri = result['artists']['items'][0]['uri']
+        related = sp.artist_related_artists(uri)
+        for artist in related['artists']:
+            self.artist_ids.append(artist['uri'])
+
+    def even_more_artists(self):
+
+        for uri in self.artist_ids:
+            related = sp.artist_related_artists(uri)
+            for artist in related['artists']:
+                self.newartists.append(artist['uri'])
+        self.newartists = [*set(self.newartists)]
+        print('Found ' + str((len(self.newartists))) + ' similar artists')
+
+    def get_artist_top_tracks(self):
+        print('Looking for Artists Songs')
+        sp = spotipy.Spotify(client_credentials_manager=SpotifyClientCredentials())
+        count = 0
+        for artist in self.newartists:
+            response = sp.artist_top_tracks(artist)
+            for track in response['tracks']:
+                self.track_ids.append(track['id'])
+                count += 1
+                print('Found ' + str(count) + ' songs')
+        print('Found ' + str(len(self.newartists)) + ' Similar Artists')
+        print('Found ' + str(len(self.track_ids)) + ' Songs from Similar Artists Before Threshold')
+
+    def create_playlist(self):
+        playlist_name = 'Songs You Can Scientifically Say You May Not Know Them' + ' ' +self.related
+        print('Creating playlist named ' + str(playlist_name))
+        scope = "playlist-modify-public"
+        sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope=scope))
+        user_id = sp.me()['id']
+        desc = "This playlist was created using data analysis of similar artists and popularity thresholds " \
+               " and automatically added tracks under the threshold."
+        playlist = sp.user_playlist_create(user_id, name=playlist_name,description=desc)
+        self.playlist_id = playlist["id"]
+        print('Playlist Created')
+
+
+    def cut_tracks(self):
+        print("Beginning to Narrow Down Tracks")
+        count = 0
+        self.track_ids = [*set(self.track_ids)]
+        for track in self.track_ids:
+            count = count + 1
+            print('Examining song #' + str(count) + ' out of ' + str(len(self.track_ids)))
+            if sp.track(track)['popularity'] < self.threshold:
+                self.sortedsongs.append(track)
+                # print('Added ' + str(len(self.sortedsongs)) + ' songs',end="\r")
+
+        print('Songs under popularity threshhold: ' + str(len(self.sortedsongs)))
+
+    def add_to_playlist(self):
+
+        print("Adding Tracks to Playlist")
+        playlist = self.playlist_id
+
+        while self.sortedsongs:
+            sp.playlist_add_items(playlist_id=playlist, items=self.sortedsongs[:100],
+                                  position=None)
+            self.sortedsongs = self.sortedsongs[100:]
+
+        print('Added tracks to playlist')
+
+    def search(self):
+        search_str = 'Radiohead'
+        sp = spotipy.Spotify(client_credentials_manager=SpotifyClientCredentials())
+        result = sp.search(search_str)
+        # print(result)
+
+    def finished(self):
+        print('Playlist Compiled')
+
+
+def main():
+    r1 = Spotify_Analysis()
+    r1.get_related_artists()
+    r1.even_more_artists()
+    r1.get_artist_top_tracks()
+    r1.create_playlist()
+    r1.cut_tracks()
+    r1.add_to_playlist()
+    # r1.search()
+    r1.finished()
+
+
+if __name__ == "__main__":
+    main()
